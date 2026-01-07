@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AI 玩具创意助手</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 0 15px; }
+    #chat { height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; background: #f9f9f9; }
+    #input { width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box; }
+    #send { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+    #send:disabled { background: #ccc; }
+  </style>
+</head>
+<body>
+
+<h2>AI 玩具创意生成器</h2>
+<div id="chat">请输入您的玩具创意需求，例如：“设计一款适合6岁孩子的环保玩具”</div>
+<textarea id="input" rows="3" placeholder="输入您的需求..."></textarea>
+<button id="send">获取 AI 建议</button>
+
+<script>
+  // === 替换为你的 DashScope API Key ===
+  const API_KEY = "sk-你的APIKey"; 
+
+  const SYSTEM_PROMPT = `你是一位资深玩具产品经理。公司计划设计一款适合5到11岁儿童的新玩具，要求具有创新性和实用价值。请直接快速生成6个创意方案（每个方案不少于100字）。`;
+
+  const chat = document.getElementById('chat');
+  const input = document.getElementById('input');
+  const send = document.getElementById('send');
+
+  function addMsg(text, isUser = false) {
+    const div = document.createElement('div');
+    div.innerHTML = (isUser ? '<b>你：</b>' : '<b>AI：</b>') + text.replace(/\n/g, '<br>');
+    div.style.marginBottom = '10px';
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  async function callAI(prompt) {
+    const res = await fetch("https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "qwen-max",
+        input: {
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: prompt }
+          ]
+        },
+        parameters: { temperature: 0.8, max_tokens: 800 }
+      })
+    });
+    const data = await res.json();
+    return data.output?.text || "生成失败，请重试。";
+  }
+
+  send.onclick = async () => {
+    const msg = input.value.trim();
+    if (!msg) return;
+    addMsg(msg, true);
+    input.value = "";
+    send.disabled = true;
+    try {
+      const reply = await callAI(msg);
+      addMsg(reply);
+    } catch (e) {
+      addMsg("❌ 调用失败：" + e.message);
+    }
+    send.disabled = false;
+  };
+</script>
+
+</body>
+</html>
